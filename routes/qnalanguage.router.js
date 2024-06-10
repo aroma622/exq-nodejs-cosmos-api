@@ -13,6 +13,8 @@ router.post('/knowledgebase/deploy', requireAuth, languageController.chatbotqaUp
 router.post('/init', requireAuth, languageController.initMongoDbQNA);
 router.post('/unansweredquestions/init',requireAuth,languageController.initMongoDbUNQNA)
 router.post('/unansweredquestions',requireAuth,languageController.chatbotqaAddunaswered)
+
+router.get('/uniquedpt',requireAuth,languageController.getUniqueDepartmetns)
 module.exports = router;
 
 

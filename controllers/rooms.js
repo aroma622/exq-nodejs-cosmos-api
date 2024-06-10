@@ -27,7 +27,7 @@ nextDay.setDate(originalDate.getDate() + 1);
 const nextdate=nextDay.toISOString().split('T')[0];
 
 let url=`https://graph.microsoft.com/v1.0/users/${mail}/calendar/events?filter=start/dateTime ge '${date}'and start/dateTime lt '${nextdate}'`
-// console.log(url)
+console.log(url)
 token= await auth()
             
             const response=await axios.get(url,{
@@ -120,15 +120,15 @@ function roomReport(name,schedule,datetime){
 
 
 function roomReportTemp(name,schedule,begin,begintime,endtime){
-    let sched=`if the first meeting begin time is less than the specified endtime say it's available before first meeting.
+    let sched=`if the first meeting begin time is less than the specified endtime say it's available before first meeting and specify the time.
     you are a AI summarizer that help to give when the room is available based on the meetings , check if this room ${name} is available between in this date ${begin} and from this time${begintime} to this time ${endtime}  , check if the room is available before and after meetings time,  the room has meetings :`
     let counter=1
     for(const item of schedule){
 
-        sched=sched + `meeting number ${counter} start time is at ${JSON.stringify(item.start)} and end time is at ${JSON.stringify(item.end)}`
+        sched=sched + `meeting number ${counter} start time is at ${JSON.stringify(item.start)} and end time is at ${JSON.stringify(item.end)} +\n`
         
         // console.log(item.start)
-
+        counter+=1
 
     }
    sched=sched+`---------------------------------------

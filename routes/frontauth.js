@@ -13,7 +13,7 @@ var path = require('path');
 
 
 var languageController = require('../controllers/qnalanguage.controller');
-
+var customQnaController=require('../controllers/customqna.controller')
 
 const options = {
     // https://login.microsoftonline.com/<your_tenant_guid>/.well-known/openid-configuration
@@ -90,7 +90,7 @@ router.get('/avatar', function(req, res) {
 router.get('/source', languageController.getQnAHtml);
 router.post('/knowledgebase',isAdmin, languageController.chatbotqaAdd);
 router.delete('/knowledgebase/:id',isAdmin, languageController.chatbotqaDelete);
-router.post('/knowledgebase/deploy',isAdmin, languageController.chatbotqaUpdateSource);
+router.post('/knowledgebase/deploy',isAdmin, customQnaController.chatbotqaUpdateCustomSource);
 
 router.post('/init',isAdmin, languageController.initMongoDbQNA);
 
@@ -104,6 +104,8 @@ router.get('/protected',(req, res) => {
 // router.post('/unansweredquestions',languageController.chatbotqaAddunaswered)
 router.get('/unansweredquestions',languageController.getUNQNA)
 router.delete('/unansweredquestions/:id',isAdmin, languageController.chatbotunqaDelete);
+router.get('/uniquedpt',isAdmin,languageController.getUniqueDepartmetns)
+router.post('/updateurl',isAdmin,languageController.updateDepartmentUrl)
 
 
 

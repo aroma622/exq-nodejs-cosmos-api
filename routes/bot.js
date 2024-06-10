@@ -56,6 +56,7 @@ findRooms().then((r) => {
 
                     console.log(jsonObject);
                    let av= await AvailableRoom(jsonObject.address,req.body.date)
+                   console.log(av)
                   //  console.log("length is ",av.value)
                     if(av.value.length==0){
                       res.json("yes it's available" ).status(200).send();

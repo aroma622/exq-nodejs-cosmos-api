@@ -34,7 +34,7 @@
 const { OpenAIClient ,AzureKeyCredential} = require("@azure/openai");
 
 
-async function main(prompt){
+async function main_instruct(prompt){
 
   const client = new OpenAIClient(process.env.endpoint, new AzureKeyCredential(process.env.key));
 
@@ -74,7 +74,7 @@ and the output should be json object only
   console.log(prompt)
  
 
-  const deploymentName = "ex-turbo-instruct";
+  const deploymentName = "SDGPT";
 
   const { choices } = await client.getCompletions(deploymentName, textToSummarize, {
     maxTokens: 1000,
@@ -92,10 +92,37 @@ and the output should be json object only
 
 
 
+async function main(prompt){
+
+  const client = new OpenAIClient(process.env.endpoint, new AzureKeyCredential(process.env.key));
+
+ 
+  
+  
+  let textToSummarize = ` `
+  textToSummarize=prompt
+  console.log(prompt)
+ 
+
+  const deploymentName = "SDGPT";
+  let messages=[{role:"user",content:prompt}]
+
+  const { choices } = await client.getChatCompletions(deploymentName, messages, {
+    maxTokens: 4000,
+    Temperature:0.69,
+    topP:0,
+  });
+  const completion = choices[0].message.content;
+  console.log(`Summarization: ${completion}`);
+  return completion
+}
+
+
+
 /////////////////////////////////////////////////////////////////
 
 
-async function report(prompt){
+async function report_instruct(prompt){
 
   const client = new OpenAIClient(process.env.endpoint, new AzureKeyCredential(process.env.key));
 
@@ -114,8 +141,28 @@ async function report(prompt){
   return completion
 }
 
+async function report(prompt){
+  console.log("single room")
 
-async function reportAllRooms(prompt){
+  const client = new OpenAIClient(process.env.endpoint, new AzureKeyCredential(process.env.key));
+
+  textToSummarize=prompt
+ 
+
+  const deploymentName = "SDGPT";
+  let messages=[{role:"user",content:prompt}]
+
+  const { choices } = await client.getChatCompletions(deploymentName, messages, {
+    maxTokens: 4000,
+    Temperature:0.69,
+    topP:0,
+  });
+  const completion = choices[0].message.content;
+  console.log(`Summarization: ${completion}`);
+  return completion
+}
+
+async function reportAllRooms_instruct(prompt){
 
   const client = new OpenAIClient(process.env.endpoint, new AzureKeyCredential(process.env.key));
 
@@ -135,6 +182,27 @@ async function reportAllRooms(prompt){
 }
 
 
+
+
+async function reportAllRooms(prompt){
+
+  const client = new OpenAIClient(process.env.endpoint, new AzureKeyCredential(process.env.key));
+
+  textToSummarize=prompt
+ 
+
+  const deploymentName = "SDGPT";
+  let messages=[{role:"user",content:prompt}]
+
+  const { choices } = await client.getChatCompletions(deploymentName, messages, {
+    maxTokens: 4000,
+    Temperature:0.69,
+    topP:0,
+  });
+  const completion = choices[0].message.content;
+  console.log(`Summarization: ${completion}`);
+  return completion
+}
 
 
 

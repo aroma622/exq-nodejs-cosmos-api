@@ -19,6 +19,7 @@ function delay(time) {
         const answer = req.body.answer;
         const department = req.body.department;
         const category = req.body.category;
+        const url = req.body.url;
 
         // Access the required database and collection
         const db = client.db(dbname);
@@ -29,7 +30,8 @@ function delay(time) {
             question: question,
             answer: answer,
             department: department,
-            category: category
+            category: category,
+            url:url,
         });
       res.status(200).json({ message: "Question and answer added successfully." ,id:result.insertedId});
   } catch (error) {
@@ -154,6 +156,7 @@ exports.getQNA = async function(req, res) {
                     answer: doc.answer,
                     department: doc.department,
                     category: doc.category,
+                    url:doc.url || ''
                 }
             }),
             departments: uniqueDepartments,
@@ -168,7 +171,41 @@ exports.getQNA = async function(req, res) {
         await client.close();
     }
 }
+exports.getUniqueDepartmetns= async function(req,res){
+    const client = new MongoClient(url);
+    try {
+        await client.connect();
+        const db = client.db(dbname);
+        const collection = db.collection('questionsanswers');
 
+        // Fetch unique values for department and category
+        const uniqueDepartments = await collection.distinct('department');
+        res.json(uniqueDepartments)
+    }catch(err){
+        console.log(err,stack);
+        res.status(500).json("Internal Server Error")
+    }finally{
+        await client.close()
+    }
+}
+exports.updateDepartmentUrl = async function(req, res) {
+    const client = new MongoClient(url);
+    const { department, url: newUrl } = req.body;
+
+    try {
+        await client.connect();
+        const db = client.db(dbname);
+        const collection = db.collection('questionsanswers');
+
+        const result = await collection.updateMany({ department: department }, { $set: { url: newUrl } });
+        res.json({ message: 'URL updated successfully', matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
+    } catch (err) {
+        console.log(err.stack);
+        res.status(500).json("Internal Server Error");
+    } finally {
+        await client.close();
+    }
+}
 
  exports.initMongoDbQNAdeprecated = async function(req, res) {
     const client = new MongoClient(url);
@@ -293,7 +330,7 @@ exports.getQNA = async function(req, res) {
  exports.chatbotqaUpdate = async (req, res) => {
     const client = new MongoClient(url);
     try {
-        const { id, question, answer, department, category } = req.body;
+        const { id, question, answer, department, category,url } = req.body;
         if (!id) {
             res.status(400).json({ success: false, message: 'ID is required' });
             return;
@@ -309,7 +346,8 @@ exports.getQNA = async function(req, res) {
                     question,
                     answer,
                     department,
-                    category
+                    category,
+                    url
                 }
             }
         );
