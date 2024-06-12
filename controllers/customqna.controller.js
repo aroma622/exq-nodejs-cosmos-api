@@ -82,7 +82,7 @@ function createQnaPayload(data) {
 
     data.forEach((doc,index) => {
         const { question, answer, department } = doc;
-        const url= doc.url || ""
+        const url = doc.url ? doc.url.replace(/^https:\/\//, '').replace(/\|/g, '') : "";
         const id = stringTo10DigitNumber(doc._id.toString());
         if(index==0){
             console.log("IDIDIDIIDIDIDID")
@@ -151,12 +151,34 @@ async function sendToAzure(qnaPayload) {
             }
         });
         console.log("//////////////")
-        // console.log(response)
+        console.log(response.status)
         console.log('Data successfully sent to Azure:', response.data);
     } catch (error) {
         console.error('Error sending data to Azure:', error.response ? error.response.data : error.message);
     }
 }
+
+async function getqnaAzure() {
+    try {
+        const response = await axios.get(azureEndpoint, {
+            headers: {
+                'Ocp-Apim-Subscription-Key': azureApiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+        console.log("Response received from Azure:", response.data);
+        
+        // Check if the 'value' property exists and has data
+        const hasData = Array.isArray(response.data?.value) && response.data.value.length > 0;
+        
+        // Return 1 if there is data, otherwise return 0
+        return hasData ? 1 : 0;
+    } catch (error) {
+        console.error('Error receiving data to Azure:', error.response ? error.response.data : error.message);
+        return 0; // Return 0 in case of error
+    }
+}
+
 function delay(time) {
     return new Promise(function(resolve) { 
         setTimeout(resolve, time)
@@ -164,80 +186,105 @@ function delay(time) {
  }
 
 
-exports.chatbotqaUpdateCustomSource = async function(req, res) {
+ exports.chatbotqaUpdateCustomSource = async function(req, res) {
     req.setTimeout(600000); // 10 minutes
     console.log("Source URI:", process.env.AZURE_FAQ_SOURCE_URI);
+    
     const refreshData = [
-          {
-              "op": "delete",
-              "value": {
+        {
+            "op": "delete",
+            "value": {
                 "displayName": "customsource",
                 "sourceUri": "customsource",
                 "sourceKind": "file",
                 "source": "customsource"
-                
-              
             }
-          }
-      ];
-      console.log(refreshData);
-      let refreshUrl = `${process.env.LANGUAGE_ENDPOINT}language/query-knowledgebases/projects/${process.env.LANGUAGE_PROJECT}/sources?api-version=2021-10-01`;
-      console.log(refreshUrl);
-      await axios({
-          method: 'patch',
-          url: refreshUrl,
-          headers: {
-              'Ocp-Apim-Subscription-Key': process.env.OCP_APIM_SUBSCRIPTION_KEY,
-              'Content-Type': 'application/json'
-          },
-          data: refreshData
-      }).then(response => {
-          console.log('Response Code:', response.status);
-          console.log('Response Data:', response);
-          console.log('Request Succeeded');
-      })
-      .catch(error => {
-          if (error.response) {
-              console.log('Response Code:', error.response.status);
-          }
-          console.log(error.message)
-          console.log('Request Failed');
-          return res.status(500).json({ message: "Internal Server Error" });
-      });
-      // Update the knowledge base
-      console.log("before delay")
-      await delay(15000); // Delay in seconds
-      console.log("after delay")
-      // If soruce url refresh succeeded, then deploy
+        }
+    ];
+    
+    console.log(refreshData);
+    const refreshUrl = `${process.env.LANGUAGE_ENDPOINT}language/query-knowledgebases/projects/${process.env.LANGUAGE_PROJECT}/sources?api-version=2021-10-01`;
+    console.log(refreshUrl);
 
+    try {
+        const response = await axios({
+            method: 'patch',
+            url: refreshUrl,
+            headers: {
+                'Ocp-Apim-Subscription-Key': process.env.OCP_APIM_SUBSCRIPTION_KEY,
+                'Content-Type': 'application/json'
+            },
+            data: refreshData
+        });
+        console.log('Refresh Request Succeeded');
+    } catch (error) {
+        console.error('Refresh Request Failed:', error.message);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 
-      const data = await fetchMongoData();
-      const qnaPayload = createQnaPayload(data);
-      await sendToAzure(qnaPayload);
+    console.log("Waiting before fetching data...");
+    await delay(20000); // Delay in seconds
+    console.log("Delay completed. Fetching data...");
 
-      await delay(3000)
+    try {
+        let data = await fetchMongoData();
+        let qnaPayload = createQnaPayload(data);
+        await sendToAzure(qnaPayload);
+        await delay(5000)
+        let hasData = await getqnaAzure();
+        let counter = 10;
 
+        while (hasData === 0 && counter > 0) {
+            data = await fetchMongoData();
+            qnaPayload = createQnaPayload(data);
+            await sendToAzure(qnaPayload);
+            console.log(`Retry attempts left: ${counter}`);
+            hasData = await getqnaAzure();
+            counter--;
+            console.log("counter")
+            console.log(counter)
+            if (hasData === 0 && counter > 0) {
+                await delay(5000); // 2 seconds delay
+            }
+        }
 
+        if (hasData === 0) {
+            console.error('Failed to send data to Azure after 5 attempts');
+            return res.status(500).json({ message: "Failed to send data to Azure" });
+        }
 
+    } catch (error) {
+        console.error('Error during data processing or sending to Azure:', error.message);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 
-      try {
-         response= await axios({
-              method: 'put',
-              url: `${process.env.LANGUAGE_ENDPOINT}language/query-knowledgebases/projects/${process.env.LANGUAGE_PROJECT}/deployments/production?api-version=2021-10-01`,
-              headers: {
-                  'Ocp-Apim-Subscription-Key': process.env.OCP_APIM_SUBSCRIPTION_KEY,
-                  'Content-Type': 'application/json'
-              },
-          });
-          console.log("///////////")
-          console.log(response.status)
-          console.log("///////////")
-          return res.status(200).json({ message: "Question and answer added and knowledge base deployed" });
-      }catch (error) {    
-          console.log(error.message)
-          return res.status(500).json({ message: "Internal Server Error" });
-      }
-  }
+    console.log("Waiting before final deployment...");
+    await delay(10000);
+
+    try {
+        const response = await axios({
+            method: 'put',
+            url: `${process.env.LANGUAGE_ENDPOINT}language/query-knowledgebases/projects/${process.env.LANGUAGE_PROJECT}/deployments/production?api-version=2021-10-01`,
+            headers: {
+                'Ocp-Apim-Subscription-Key': process.env.OCP_APIM_SUBSCRIPTION_KEY,
+                'Content-Type': 'application/json'
+            },
+        });
+        console.log("Deployment Response Code:", response.status);
+        // Check if deployment was successful
+        if (response.status === 200 || response.status===202) {
+            console.log("Deployment successful.");
+            return res.status(200).json({ message: "Question and answer added and knowledge base deployed" });
+        } else {
+            console.error('Deployment failed:', response.statusText);
+            return res.status(500).json({ message: "Deployment failed" });
+        }
+    } catch (error) {
+        console.error('Error during deployment:', error.message);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 
 
 
