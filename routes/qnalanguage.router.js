@@ -3,6 +3,10 @@ const path = require('path');
 var languageController = require('../controllers/qnalanguage.controller');
 var requireAuth = require('../middlewares/verifyRequests');
 var requireSourceAuth = require('../middlewares/verifySourceRequests');
+// 
+var customQnaController=require('../controllers/customqna.controller')
+// 
+
 var router = express.Router();
 
 router.get('/knowledgebase', requireAuth, languageController.getQNA);
@@ -15,6 +19,7 @@ router.post('/unansweredquestions/init',requireAuth,languageController.initMongo
 router.post('/unansweredquestions',requireAuth,languageController.chatbotqaAddunaswered)
 
 router.get('/uniquedpt',requireAuth,languageController.getUniqueDepartmetns)
+router.get('/getqnabody',requireAuth,customQnaController.getqnabody)
 module.exports = router;
 
 

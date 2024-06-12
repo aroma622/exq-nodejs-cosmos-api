@@ -241,3 +241,19 @@ exports.chatbotqaUpdateCustomSource = async function(req, res) {
 
 
 
+// ///////////////////////////////////////
+
+
+exports.getqnabody = async function(req, res) {
+    req.setTimeout(600000); // 10 minutes
+
+    try {
+        const data = await fetchMongoData();
+        const qnaPayload = createQnaPayload(data);
+
+        return res.status(200).json({ message: qnaPayload });
+    } catch (error) {
+        console.error('Error fetching QnA body:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
