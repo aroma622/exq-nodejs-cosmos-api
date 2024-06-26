@@ -82,7 +82,8 @@ function createQnaPayload(data) {
 
     data.forEach((doc,index) => {
         const { question, answer, department } = doc;
-        const url = doc.url ? doc.url.replace(/^https:\/\//, '').replace(/\|/g, '') : "";
+        // const url = doc.url ? doc.url.replace(/^https:\/\//, '').replace(/\|/g, '') : "";
+        const url = doc.url ? doc.url.toLowerCase().replace("https://ceerev.sharepoint.com/sites/", '').replace(/\|/g, '').split("/")[0] : "";
         const id = stringTo10DigitNumber(doc._id.toString());
         if(index==0){
             console.log("IDIDIDIIDIDIDID")
