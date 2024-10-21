@@ -9,6 +9,17 @@ var customQnaController=require('../controllers/customqna.controller')
 
 var router = express.Router();
 
+// upload file
+const multer = require('multer');
+const csv = require('csv-parser');
+const storage = multer.memoryStorage();  // Store file in memory
+const upload = multer({ storage });
+router.post('/uploadcsv',requireAuth,upload.single('file'), customQnaController.uploadCSV);
+// upload file
+// chatbotqaUpdateCustomSource
+router.post('/knowledgebase/deploycustom', requireAuth,customQnaController.chatbotqaUpdateCustomSource);
+
+
 router.get('/knowledgebase', requireAuth, languageController.getQNA);
 router.get('/source',requireSourceAuth, languageController.getQnAHtml);
 router.post('/knowledgebase', requireAuth, languageController.chatbotqaAdd);

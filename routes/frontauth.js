@@ -73,6 +73,13 @@ const bearerStrategy = new BearerStrategy(options, (token, done) => {
 
 passport.use(bearerStrategy);
 
+// upload file
+// upload file
+const multer = require('multer');
+const csv = require('csv-parser');
+const storage = multer.memoryStorage();  // Store file in memory
+const upload = multer({ storage });
+
 router.use(passport.initialize());
 
 router.use(passport.authenticate('oauth-bearer', { session: false }), (req, res, next) => {
@@ -100,7 +107,7 @@ router.get('/protected',(req, res) => {
     res.send({'res':'Hello! This resource is protected.'})
 }
 )
-
+router.post('/uploadcsv',isAdmin,upload.single('file'), customQnaController.uploadCSV);
 // router.post('/unansweredquestions',languageController.chatbotqaAddunaswered)
 router.get('/unansweredquestions',languageController.getUNQNA)
 router.delete('/unansweredquestions/:id',isAdmin, languageController.chatbotunqaDelete);

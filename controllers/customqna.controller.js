@@ -4,8 +4,8 @@ const {MongoClient, ObjectId} = require('mongodb');
 const axios = require('axios');
 const url = process.env.COSMOS_CONNECTION_STRING;
 const dbname = process.env.COSMOS_DB_NAME;
-
-
+const stream = require('stream');
+const csv = require('csv-parser');
 // const { MongoClient } = require('mongodb');
 // const axios = require('axios');
 
@@ -14,7 +14,82 @@ const dbName = process.env.COSMOS_DB_NAME
 const collectionName = 'questionsanswers';
 const azureEndpoint = `${process.env.LANGUAGE_ENDPOINT}language/query-knowledgebases/projects/${process.env.LANGUAGE_PROJECT}/qnas?api-version=2021-10-01`;
 const azureApiKey =  process.env.OCP_APIM_SUBSCRIPTION_KEY
+// upload file
 
+exports.uploadCSV = async function uploadcsv(req, res) {
+    // Check if a file was uploaded
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded. Please upload a CSV file.' });
+    }
+
+    const fileBuffer = req.file.buffer;  // Get the file buffer
+
+    const requiredHeaders = ['question', 'answer', 'department', 'category', 'url'];  // Required CSV headers
+    const results = [];
+    const readableStream = new stream.PassThrough();
+    readableStream.end(fileBuffer);
+
+    let headersValidated = false;
+
+    readableStream
+        .pipe(csv())
+        .on('headers', (headers) => {
+            // Check if all required headers are present
+            const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+
+            if (missingHeaders.length > 0) {
+                return res.status(400).json({ message: `Missing headers: ${missingHeaders.join(', ')}` });
+            } else {
+                headersValidated = true;
+            }
+        })
+        .on('data', (data) => {
+            if (!headersValidated) return;
+
+            // Map CSV fields explicitly to MongoDB fields
+            const document = {
+                answer: data.answer,
+                question: data.question,
+                department: data.department,
+                category: data.category,
+                url: data.url
+            };
+
+            // Skip document if any field is empty
+            if (!document.answer || !document.question || !document.department || !document.category || !document.url) {
+                return; // Don't add this document to results
+            }
+
+            results.push(document);
+        })
+        .on('end', async () => {
+            if (!headersValidated) return;  // Skip insertion if headers are invalid
+
+            let client;
+
+            try {
+                // Connect to MongoDB
+                client = await MongoClient.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
+                const db = client.db(dbName);
+                const collection = db.collection(collectionName);
+
+                // Insert data into MongoDB
+                const insertResult = await collection.insertMany(results);
+
+                return res.status(200).json({ message: 'Data successfully inserted into MongoDB',res:insertResult }); // Send success response
+            } catch (error) {
+                console.error('Error inserting data into MongoDB', error);
+                return res.status(500).json({ message: 'Error inserting data into MongoDB' }); // Send error response
+            } finally {
+                if (client) {
+                    await client.close();
+                }
+            }
+        });
+};
+
+
+// END upload file
 
 async function fetchMongoData() {
     const client = new MongoClient(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
