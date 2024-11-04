@@ -4,6 +4,7 @@ const {MongoClient, ObjectId} = require('mongodb');
 const axios = require('axios');
 const url = process.env.COSMOS_CONNECTION_STRING;
 const dbname = process.env.COSMOS_DB_NAME;
+const { Parser } = require('json2csv'); 
 const stream = require('stream');
 const csv = require('csv-parser');
 // const { MongoClient } = require('mongodb');
@@ -90,6 +91,39 @@ exports.uploadCSV = async function uploadcsv(req, res) {
 
 
 // END upload file
+
+
+// Download file as CSV
+exports.downloadCSV = async function downloadCSV(req, res) {
+    let client;
+
+    try {
+        // Connect to MongoDB
+        client = await MongoClient.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
+        const documents = await collection.find().toArray();
+        if (documents.length === 0) {
+            return res.status(404).json({ message: 'No data found in the collection to download.' });
+        }
+        const fields = ['question', 'answer', 'department', 'category', 'url'];
+        const opts = { fields };
+        const parser = new Parser(opts);
+        const csvData = parser.parse(documents);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=questionsanswers.csv');
+        res.status(200).send(csvData);
+    } catch (error) {
+        console.error('Error downloading data as CSV', error);
+        return res.status(500).json({ message: 'Error downloading data as CSV' });
+    } finally {
+        if (client) {
+            await client.close();
+        }
+    }
+};
+
+//End Download file as CSV
 
 async function fetchMongoData() {
     const client = new MongoClient(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });

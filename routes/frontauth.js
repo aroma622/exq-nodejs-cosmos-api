@@ -108,6 +108,7 @@ router.get('/protected',(req, res) => {
 }
 )
 router.post('/uploadcsv',isAdmin,upload.single('file'), customQnaController.uploadCSV);
+router.get('/downloadcsv',isAdmin,customQnaController.downloadCSV)
 // router.post('/unansweredquestions',languageController.chatbotqaAddunaswered)
 router.get('/unansweredquestions',languageController.getUNQNA)
 router.delete('/unansweredquestions/:id',isAdmin, languageController.chatbotunqaDelete);
