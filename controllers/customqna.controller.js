@@ -219,34 +219,62 @@ function createQnaPayload(data) {
     });
 
     // Create a QnA pair for each department
-    Object.keys(departmentLookup).forEach((department,index) => {
+    Object.keys(departmentLookup).forEach((department, index) => {
         const departmentQuestions = departmentLookup[department];
         const id = stringTo10DigitNumber(department);
-        if(index==0){
-            console.log("IDIDIDIIDID")
-            console.log(id)
+        
+        // Log the department ID only for the first iteration
+        if (index == 0) {
+            console.log("IDIDIDIIDID");
+            console.log(id);
         }
-        const prompts = departmentQuestions.map((d, index) => ({
-            displayOrder: index + 1,
-            qnaId: stringTo10DigitNumber(d._id.toString()),
-            displayText: d.question
-        }));
-
-        const qnaItem = {
-            op: "replace",
-            value: {
-                id: id,
-                answer: `Questions related to ${department}`,
-                source: "customsource",
-                questions: [department],
-                metadata: { department: department, url: departmentQuestions[0].url ? departmentQuestions[0].url.toLowerCase().replace("https://ceerev.sharepoint.com/sites/", '').replace(/\|/g, '').split("/")[0] : "" },
-                dialog: {
-                    isContextOnly: false,
-                    prompts: prompts
-                }
+    
+        // Group questions by URL
+        const urlGroups = departmentQuestions.reduce((acc, question) => {
+            const formattedUrl = question.url ? question.url.toLowerCase().replace("https://ceerev.sharepoint.com/sites/", '').replace(/\|/g, '').split("/")[0] : "default";
+            
+            if (!acc[formattedUrl]) {
+                acc[formattedUrl] = [];
             }
-        };
-        qnaPayload.push(qnaItem);
+    
+            acc[formattedUrl].push(question);
+            return acc;
+        }, {});
+    
+        // Iterate over each URL group and create prompts
+        Object.keys(urlGroups).forEach((url) => {
+           
+            const urlQuestions = urlGroups[url];
+    
+            // Create prompts for the current URL group
+            const prompts = urlQuestions.map((question, index) => ({
+                displayOrder: index + 1,
+                qnaId: stringTo10DigitNumber(question._id.toString()),
+                displayText: question.question
+            }));
+
+            // Construct the qnaItem for this URL group
+            const qnaItem = {
+                op: "replace",
+                value: {
+                    id: stringTo10DigitNumber(department+url),
+                    answer: `Questions related to ${department}`,
+                    source: "customsource",
+                    questions: [department],
+                    metadata: {
+                        department: department,
+                        url: url 
+                    },
+                    dialog: {
+                        isContextOnly: false,
+                        prompts: prompts 
+                    }
+                }
+            };
+    
+            
+            qnaPayload.push(qnaItem);
+        });
     });
 
     return qnaPayload;
