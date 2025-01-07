@@ -239,7 +239,7 @@ function createQnaPayload(data) {
                 answer: `Questions related to ${department}`,
                 source: "customsource",
                 questions: [department],
-                metadata: { department: department },
+                metadata: { department: department, url: departmentQuestions[0].url ? departmentQuestions[0].url.toLowerCase().replace("https://ceerev.sharepoint.com/sites/", '').replace(/\|/g, '').split("/")[0] : "" },
                 dialog: {
                     isContextOnly: false,
                     prompts: prompts
